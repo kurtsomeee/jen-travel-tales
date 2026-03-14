@@ -715,7 +715,6 @@
   <nav id="mainNav">
     <span class="nav-logo" onclick="showPage('home')">jen travel tales</span>
     <div class="nav-links">
-      <a onclick="showPage('blog')" id="nav-blog">Blog</a>
       <a onclick="showCategory('Freelancing')" id="nav-freelancing">Freelancing</a>
       <a onclick="showCategory('Remote Work')" id="nav-remote">Remote Work</a>
       <a onclick="showCategory('Travel Diaries')" id="nav-travel">Travel Diaries</a>
@@ -723,7 +722,7 @@
     </div>
     <div class="nav-btns">
       <button class="btn-outline">Subscribe</button>
-      <button class="btn-primary" onclick="showPage('blog')">Laptop Life Starts Here</button>
+      <button class="btn-primary" onclick="window.open('https://digitalstreamacademy.com/remote-work-playbook','_blank')">Laptop Life Starts Here</button>
       <button class="btn-outline" onclick="renderMetaPanel()" title="Preview SEO / OG tags" style="padding:6px 10px;font-size:11px;">🔍 SEO</button>
     </div>
     <button class="nav-mobile-toggle" onclick="toggleMobileNav()">
@@ -744,7 +743,6 @@
     <div class="filters">
       <div class="filter-tabs">
         <button class="filter-tab active" data-cat="all" onclick="filterHome(this,'all')">All</button>
-        <button class="filter-tab" data-cat="Blog" onclick="filterHome(this,'Blog')">Blog</button>
         <button class="filter-tab" data-cat="Freelancing" onclick="filterHome(this,'Freelancing')">Freelancing</button>
         <button class="filter-tab" data-cat="Remote Work" onclick="filterHome(this,'Remote Work')">Remote Work</button>
         <button class="filter-tab" data-cat="Travel Diaries" onclick="filterHome(this,'Travel Diaries')">Travel Diaries</button>
@@ -777,13 +775,15 @@
 
   <div id="cat-hero-wrap"></div>
 
-  <!-- Filters -->
-  <div class="section-header" style="background: #fff; background-image: none; border-bottom: 1px solid var(--gray-300);">
+  <!-- Category Filters -->
+  <div class="section-header" style="background: #fff; background-image: none; border-bottom: 1px solid var(--gray-300); padding-top: 20px; padding-bottom: 20px;">
     <div class="filters" style="margin-top: 0;">
-      <div class="filter-tabs">
-        <button class="filter-tab" onclick="sortBlog('Most recent')" id="sort-recent">Sort by: Most recent</button>
-        <button class="filter-tab" onclick="sortBlog('Oldest')" id="sort-oldest">Oldest</button>
+      <div class="filter-tabs" id="cat-filter-tabs">
+        <button class="filter-tab" data-cat="Freelancing" onclick="switchCategory(this,'Freelancing')">Freelancing</button>
+        <button class="filter-tab" data-cat="Remote Work" onclick="switchCategory(this,'Remote Work')">Remote Work</button>
+        <button class="filter-tab" data-cat="Travel Diaries" onclick="switchCategory(this,'Travel Diaries')">Travel Diaries</button>
       </div>
+      <button class="sort-btn">Sort by: Most recent</button>
     </div>
   </div>
 
@@ -838,7 +838,6 @@
       <div class="sidebar-section">
         <div class="sidebar-title">Explore more topics</div>
         <div class="topic-tags">
-          <span class="topic-tag" onclick="showPage('blog')">Blog</span>
           <span class="topic-tag" onclick="showCategory('Freelancing')">Freelancing</span>
           <span class="topic-tag" onclick="showCategory('Remote Work')">Remote Work</span>
           <span class="topic-tag" onclick="showCategory('Travel Diaries')">Travel Diaries</span>
@@ -1056,13 +1055,16 @@ let currentBlogId = 0;
 
 // ===== NAVIGATION =====
 function showPage(page) {
+  // 'blog' no longer exists as a page — redirect to home
+  if (page === 'blog') { showPage('home'); return; }
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   currentPage = page;
 
   // Nav active state
   document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
-  const navMap = { home: null, blog: 'nav-blog', about: 'nav-about' };
+  const navMap = { home: null, about: 'nav-about' };
   if (navMap[page]) document.getElementById(navMap[page]).classList.add('active');
 
   // Update SEO meta
@@ -1070,16 +1072,23 @@ function showPage(page) {
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  if (page === 'blog') {
-    currentCategory = 'all';
-    renderCatHero('all');
-    renderBlogGrid('blog-grid', 'all');
-    // Update meta for blog listing
-    const cs = CAT_SEO['all'];
-    const firstImg = BLOGS[0] ? BLOGS[0].image : '';
-    updateMeta({ ...cs, image: firstImg });
-  }
   if (page === 'about') renderFooter('footer-about');
+}
+
+// Switch category FROM within the category page (tab clicks)
+function switchCategory(btn, cat) {
+  currentCategory = cat;
+  // Update active tab
+  document.querySelectorAll('#cat-filter-tabs .filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Re-render hero + grid
+  renderCatHero(cat);
+  renderBlogGrid('blog-grid', cat);
+  // Update meta
+  const cs = CAT_SEO[cat] || CAT_SEO['all'];
+  const matchImg = BLOGS.find(b => b.category === cat);
+  updateMeta({ ...cs, image: matchImg ? matchImg.image : '' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function showCategory(cat) {
@@ -1092,6 +1101,11 @@ function showCategory(cat) {
   document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
   if (catNavMap[cat]) document.getElementById(catNavMap[cat]).classList.add('active');
 
+  // Set active tab on the category filter bar
+  document.querySelectorAll('#cat-filter-tabs .filter-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.cat === cat);
+  });
+
   // Update SEO meta with category image (first matching blog thumbnail)
   const cs = CAT_SEO[cat] || CAT_SEO['all'];
   const matchImg = BLOGS.find(b => b.category === cat);
@@ -1099,6 +1113,7 @@ function showCategory(cat) {
 
   renderCatHero(cat);
   renderBlogGrid('blog-grid', cat);
+  renderFooter('footer-blog');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1108,7 +1123,7 @@ function showSingleBlog(id) {
   document.getElementById('single-title').textContent = blog.title;
   document.getElementById('single-author').textContent = blog.author;
   document.getElementById('single-date').textContent = blog.date;
-  document.getElementById('single-breadcrumb').innerHTML = `<span style="cursor:pointer" onclick="showPage('blog')">${blog.category}</span> / ${blog.title.substring(0, 40)}...`;
+  document.getElementById('single-breadcrumb').innerHTML = `<span style="cursor:pointer" onclick="showCategory('${blog.category}')">${blog.category}</span> / ${blog.title.substring(0, 40)}...`;
   document.getElementById('single-body').innerHTML = blog.body;
 
   // Update SEO meta for this blog post
@@ -1289,7 +1304,8 @@ function renderFooter(id) {
 }
 
 function filterHome(btn, cat) {
-  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  // Only affect home page filter tabs
+  document.querySelectorAll('#page-home .filter-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderBlogGrid('home-grid', cat);
 }
@@ -1352,7 +1368,41 @@ function init() {
 
   
 
-init();
+
+// ===== URL ROUTER =====
+function routeFromPath() {
+  const base = '/jen-travel-tales';
+  let path = window.location.pathname;
+  if (path.startsWith(base)) path = path.slice(base.length);
+  path = path.replace(/\/+$/, '') || '/';
+
+  // /blog/<slug>
+  const blogMatch = path.match(/^\/blog\/([^/]+)$/);
+  if (blogMatch) {
+    const slug = blogMatch[1];
+    const blog = BLOGS.find(b => b.slug === slug);
+    if (blog) { showSingleBlog(blog.id); return; }
+  }
+
+  // /category/<slug>
+  const catSlugs = {
+    'freelancing':    'Freelancing',
+    'remote-work':    'Remote Work',
+    'travel-diaries': 'Travel Diaries'
+  };
+  const catMatch = path.match(/^\/category\/([^/]+)$/);
+  if (catMatch && catSlugs[catMatch[1]]) {
+    showCategory(catSlugs[catMatch[1]]); return;
+  }
+
+  // /about
+  if (path === '/about') { showPage('about'); return; }
+
+  // default → home
+  init();
+}
+
+routeFromPath();
 </script>
 
 </body>
